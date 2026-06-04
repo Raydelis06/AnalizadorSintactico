@@ -6,9 +6,10 @@ public class App {
         String linea = new String();
 
         System.out.println("============= ANALIZADOR =============");
-        System.out.println("----- Escriba la linea de codigo -----");
+        System.out.println("Escriba la linea de codigo: ");
         linea = scan.nextLine();
-        System.out.println("----------- ANALISIS LEXICO ----------");
+        scan.close();
+        System.out.println("\n----------- ANALISIS LEXICO ----------");
         Lexer lexer = new Lexer(linea);
         lexer.mostrarAnalisis();
     }

@@ -196,12 +196,10 @@ public class Lexer {
         if (pos + 1 >= input.length()) return '\0';
         return input.charAt(pos + 1);
     }
-    private char peek(int offset) {
-        if (pos + offset >= input.length()) return '\0';
-        return input.charAt(pos + offset);
-    }
     public void mostrarAnalisis() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'mostrarAnalisis'");
+        List<Token> listaObtenida = tokenize();
+        for(int i = 0; i < listaObtenida.size(); i++){
+            System.out.println(listaObtenida.get(i).toString());
+        }
     }
 }
