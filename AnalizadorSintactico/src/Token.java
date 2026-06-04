@@ -17,6 +17,6 @@ public class Token {
 
     @Override
     public String toString() {
-        return Tipo + " -> " + Lexema;
+        return Tipo.getDescripcion() + " -> " + Lexema;
     }
 }
