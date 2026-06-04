@@ -200,4 +200,8 @@ public class Lexer {
         if (pos + offset >= input.length()) return '\0';
         return input.charAt(pos + offset);
     }
+    public void mostrarAnalisis() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'mostrarAnalisis'");
+    }
 }
