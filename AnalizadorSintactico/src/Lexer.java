@@ -1,9 +1,17 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Lexer {
     private String input;
     private int pos;
+    private List<String> modificadoresAcceso = Arrays.asList("public", "private", "protected");
+    private List<String> modificadoresComportamiento = Arrays.asList("static", "final", "abstract", "void");
+    private List<String> otrasPalabrasClave = Arrays.asList("int", "string", "new", "if", "while", 
+        "for", "return", "do", "char", "else", "class", "break", "boolean", "finally", "super",
+        "package", "import", "switch", "case", "continue", "default", "long", "byte", "implements", 
+        "double", "interface", "extends", "this"
+    );
 
     public Lexer(String input) {
         this.input = input;
@@ -20,7 +28,7 @@ public class Lexer {
                 continue;
             }
             //Identificar comentarios de una linea
-            if (current == '/' && peek() == '/') {
+            if (current == '/' && obtenerCaracterSiguiente() == '/') {
                 StringBuilder comentario = new StringBuilder();
                 comentario.append("//");
                 pos += 2;
@@ -32,20 +40,25 @@ public class Lexer {
                 continue;
             }
             //Identificar comentarios de varias lineas
-            if (current == '/' && peek() == '*') {
+            if (current == '/' && obtenerCaracterSiguiente() == '*') {
                 StringBuilder comentario = new StringBuilder();
                 comentario.append("/*");
                 pos += 2;
+                boolean cerrado = false;
                 while (pos < input.length()) {
-                    if (input.charAt(pos) == '*' && peek() == '/') {
+                    if (input.charAt(pos) == '*' && obtenerCaracterSiguiente() == '/') {
                         comentario.append("*/");
+                        cerrado = true;
                         pos += 2;
                         break;
                     }
                     comentario.append(input.charAt(pos));
                     pos++;
                 }
-                tokens.add(new Token(TokenType.COMENTARIO_DE_VARIAS_LINEAS, comentario.toString()));
+                if(cerrado)
+                    tokens.add(new Token(TokenType.COMENTARIO_DE_VARIAS_LINEAS, comentario.toString()));
+                else
+                    tokens.add(new Token(TokenType.ERROR, "COMENTARIO_SIN_CERRAR " + comentario.toString()));
                 continue;
             }
             //Identificar identificadores y palabras clave
@@ -82,7 +95,7 @@ public class Lexer {
             //Identificar otros simbolos (operacion y agrupacion)
             switch (current) {
                 case ':':
-                    if (current == ':' && peek() == '=') {
+                    if (current == ':' && obtenerCaracterSiguiente() == '=') {
                         tokens.add(new Token(TokenType.ASSIGN, ":="));
                         pos += 2;
                         continue;
@@ -90,6 +103,10 @@ public class Lexer {
                         tokens.add(new Token(TokenType.DOS_PUNTOS, String.valueOf(current)));
                         pos++;
                     }
+                    break;
+                case '=':
+                    tokens.add(new Token(TokenType.ASSIGN, String.valueOf(current)));
+                    pos++;
                     break;
                 case '+':
                     tokens.add(new Token(TokenType.PLUS, String.valueOf(current)));
@@ -160,12 +177,16 @@ public class Lexer {
             tipo = TokenType.NULL;
         }
         //modificadores de acceso
-        else if(palabra.equals("public") || palabra.equals("private") || palabra.equals("protected")){
+        else if(modificadoresAcceso.contains(palabra)){
             tipo = TokenType.MODIFICADOR_ACCESO;
         }
         //modificadores de comportamiento
-        else if(palabra.equals("static") || palabra.equals("final") || palabra.equals("abstract")){
+        else if(modificadoresComportamiento.contains(palabra)){
             tipo = TokenType.MODIFICADOR_COMPORTAMIENTO;
+        }
+        //otras palabras reservadas
+        else if(otrasPalabrasClave.contains(palabra)){
+            tipo = TokenType.PALABRA_CLAVE;
         }
         //Identificadores
         else 
@@ -192,7 +213,7 @@ public class Lexer {
         }
         return new Token(TokenType.NUMBER, sb.toString());
     }
-    private char peek() {
+    private char obtenerCaracterSiguiente() {
         if (pos + 1 >= input.length()) return '\0';
         return input.charAt(pos + 1);
     }
