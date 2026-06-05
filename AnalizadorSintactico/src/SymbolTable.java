@@ -17,7 +17,7 @@ public class SymbolTable {
 
     public Symbol getSymbol(String name) throws SemanticException {
         if (!table.containsKey(name)) {
-            throw new SemanticException("Error semantico: Variable '" + name + "' no declarada.");
+            throw new SemanticException("Error semantico: Variable  '" + name + "' no declarada.");
         }
         return table.get(name);
     }
