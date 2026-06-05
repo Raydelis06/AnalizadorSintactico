@@ -1,10 +1,12 @@
 public class Token {
     private TokenType Tipo;
     private String Lexema;
+    private int linea;
 
-    public Token(TokenType tipo, String lexema) {
+    public Token(TokenType tipo, String lexema, int linea) {
         this.Tipo = tipo;
-        Lexema = lexema;
+        this.Lexema = lexema;
+        this.linea = linea;
     }
 
     public TokenType getType() {
@@ -15,8 +17,12 @@ public class Token {
         return Lexema;
     }
 
+    public int getLinea() {
+        return linea;
+    }
+
     @Override
     public String toString() {
-        return Tipo.getDescripcion() + " -> " + Lexema;
+        return Tipo.getDescripcion() + " -> " + Lexema + " [Linea " + linea + "]";
     }
 }
