@@ -1,16 +1,24 @@
-import java.util.Scanner;
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
-public class App {
-    public static void main(String[] args) throws Exception {
-        Scanner scan = new Scanner(System.in);
-        String linea = new String();
+public class App extends Application {
+    
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        
+        Parent root = FXMLLoader.load(getClass().getResource("Ventana1.fxml"));
+        
+        
+        primaryStage.setTitle("Analizador Lexico, Sintactico y Semantico");
+        primaryStage.setScene(new Scene(root, 700, 500));
+        primaryStage.show();
+    }
 
-        System.out.println("============= ANALIZADOR =============");
-        System.out.println("Escriba la linea de codigo: ");
-        linea = scan.nextLine();
-        scan.close();
-        System.out.println("\n----------- ANALISIS LEXICO ----------");
-        Lexer lexer = new Lexer(linea);
-        lexer.mostrarAnalisis();
+    public static void main(String[] args) {
+        
+        launch(args);
     }
 }
