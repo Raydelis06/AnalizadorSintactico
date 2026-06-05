@@ -119,24 +119,54 @@ public class Lexer {
                     }
                     break;
                 case '=':
-                    tokens.add(new Token(TokenType.ASSIGN, String.valueOf(current), lineaActual));
-                    pos++;
+                    if (obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_COMPARACION, "==", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.ASSIGN, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
                     break;
                 case '+':
-                    tokens.add(new Token(TokenType.PLUS, String.valueOf(current), lineaActual));
-                    pos++;
+                    if (obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_ARITMETICO, "+=", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.PLUS, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
                     break;
                 case '-':
-                    tokens.add(new Token(TokenType.MINUS, String.valueOf(current), lineaActual));
-                    pos++;
+                    if (obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_ARITMETICO, "-=", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.MINUS, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
                     break;
                 case '*':
-                    tokens.add(new Token(TokenType.MULT, String.valueOf(current), lineaActual));
-                    pos++;
+                    if (obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_ARITMETICO, "*=", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.MULT, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
                     break;
                 case '/':
-                    tokens.add(new Token(TokenType.DIV, String.valueOf(current), lineaActual));
-                    pos++;
+                    if (obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_ARITMETICO, "/=", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.DIV, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
                     break;
                 case ';':
                     tokens.add(new Token(TokenType.PUNTO_Y_COMA, String.valueOf(current), lineaActual));
@@ -165,6 +195,36 @@ public class Lexer {
                 case ']':
                     tokens.add(new Token(TokenType.CORCHETE_CERRADO, String.valueOf(current), lineaActual));
                     pos++;
+                    break;
+                case '!':
+                    if (obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_COMPARACION, "!=", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.OPERADOR_LOGICO, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
+                    break;
+                case '<':
+                    if (current == '<' && obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_COMPARACION, "<=", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.OPERADOR_COMPARACION, "<", lineaActual));
+                        pos++;
+                    }
+                    break;
+                case '>':
+                    if (current == '>' && obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.OPERADOR_COMPARACION, ">=", lineaActual));
+                        pos += 2;
+                        continue;
+                    }else{
+                        tokens.add(new Token(TokenType.OPERADOR_COMPARACION, ">", lineaActual));
+                        pos++;
+                    }
                     break;
                 default:
                     tokens.add(new Token(TokenType.ERROR, String.valueOf(current), lineaActual));
