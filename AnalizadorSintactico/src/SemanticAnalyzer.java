@@ -22,14 +22,6 @@ public class SemanticAnalyzer {
         if (typeLeft.equals("int") && typeRight.equals("int")) {
             return "int";
         }
-        
-        if (typeLeft.equals("String") || typeRight.equals("String")) {
-            if (operator == TokenType.PLUS) {
-                return "String";
-            }
-            throw new SemanticException("Error semantico: Operador " + operator + " no soportado para String.");
-        }
-
         throw new SemanticException("Error semantico: Tipos incompatibles (" + typeLeft + " y " + typeRight + ").");
     }
 
