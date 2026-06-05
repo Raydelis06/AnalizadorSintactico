@@ -5,6 +5,7 @@ import java.util.List;
 public class Lexer {
     private String input;
     private int pos;
+    private int lineaActual = 1;
     private List<String> modificadoresAcceso = Arrays.asList("public", "private", "protected");
     private List<String> modificadoresComportamiento = Arrays.asList("static", "final", "abstract", "void");
     private List<String> otrasPalabrasClave = Arrays.asList("int", "string", "new", "if", "while", 
@@ -17,17 +18,24 @@ public class Lexer {
         this.input = input;
         this.pos = 0;
     }
+
     public List<Token> tokenize() {
         List<Token> tokens = new ArrayList<>();
 
         while (pos < input.length()) {
             char current = input.charAt(pos);
-            //Identificar y saltar espacios en blanco
+
+            if (current == '\n') {
+                lineaActual++;
+                pos++;
+                continue;
+            }
+
             if (Character.isWhitespace(current)) {
                 pos++;
                 continue;
             }
-            //Identificar comentarios de una linea
+
             if (current == '/' && obtenerCaracterSiguiente() == '/') {
                 StringBuilder comentario = new StringBuilder();
                 comentario.append("//");
@@ -36,16 +44,19 @@ public class Lexer {
                     comentario.append(input.charAt(pos));
                     pos++;
                 }
-                tokens.add(new Token(TokenType.COMENTARIO_DE_LINEA, comentario.toString()));
+                tokens.add(new Token(TokenType.COMENTARIO_DE_LINEA, comentario.toString(), lineaActual));
                 continue;
             }
-            //Identificar comentarios de varias lineas
+
             if (current == '/' && obtenerCaracterSiguiente() == '*') {
                 StringBuilder comentario = new StringBuilder();
                 comentario.append("/*");
                 pos += 2;
                 boolean cerrado = false;
                 while (pos < input.length()) {
+                    if (input.charAt(pos) == '\n') {
+                        lineaActual++;
+                    }
                     if (input.charAt(pos) == '*' && obtenerCaracterSiguiente() == '/') {
                         comentario.append("*/");
                         cerrado = true;
@@ -56,23 +67,26 @@ public class Lexer {
                     pos++;
                 }
                 if(cerrado)
-                    tokens.add(new Token(TokenType.COMENTARIO_DE_VARIAS_LINEAS, comentario.toString()));
+                    tokens.add(new Token(TokenType.COMENTARIO_DE_VARIAS_LINEAS, comentario.toString(), lineaActual));
                 else
-                    tokens.add(new Token(TokenType.ERROR, "COMENTARIO_SIN_CERRAR " + comentario.toString()));
+                    tokens.add(new Token(TokenType.ERROR, "COMENTARIO_SIN_CERRAR " + comentario.toString(), lineaActual));
                 continue;
             }
-            //Identificar identificadores y palabras clave
+
             if (Character.isLetter(current) || current == '_') {
                 tokens.add(leerIdentificadorPalabrasReservadas());
                 continue;
             }
-            //Identificar cadenas
+
             if (current == '"') {
                 StringBuilder sb = new StringBuilder();
                 pos++; 
                 boolean cerrado = false;
                 while (pos < input.length()) {
                     char c = input.charAt(pos);
+                    if (c == '\n') {
+                        lineaActual++;
+                    }
                     if (c == '"') {
                         cerrado = true;
                         pos++; 
@@ -82,84 +96,85 @@ public class Lexer {
                     pos++;
                 }
                 if (!cerrado) {
-                    tokens.add(new Token(TokenType.ERROR, "STRING_NO_CERRADA: " + sb.toString()));
+                    tokens.add(new Token(TokenType.ERROR, "STRING_NO_CERRADA: " + sb.toString(), lineaActual));
                 }else
-                    tokens.add(new Token(TokenType.STRING, sb.toString()));
+                    tokens.add(new Token(TokenType.STRING, sb.toString(), lineaActual));
                 continue;
             }
-            //Identificar numeros
+
             if (Character.isDigit(current)) {
                 tokens.add(readNumber());
                 continue;
             }
-            //Identificar otros simbolos (operacion y agrupacion)
+
             switch (current) {
                 case ':':
-                    if (current == ':' && obtenerCaracterSiguiente() == '=') {
-                        tokens.add(new Token(TokenType.ASSIGN, ":="));
+                    if (obtenerCaracterSiguiente() == '=') {
+                        tokens.add(new Token(TokenType.ASSIGN, ":=", lineaActual));
                         pos += 2;
                         continue;
                     }else{
-                        tokens.add(new Token(TokenType.DOS_PUNTOS, String.valueOf(current)));
+                        tokens.add(new Token(TokenType.DOS_PUNTOS, String.valueOf(current), lineaActual));
                         pos++;
                     }
                     break;
                 case '=':
-                    tokens.add(new Token(TokenType.ASSIGN, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.ASSIGN, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '+':
-                    tokens.add(new Token(TokenType.PLUS, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.PLUS, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '-':
-                    tokens.add(new Token(TokenType.MINUS, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.MINUS, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '*':
-                    tokens.add(new Token(TokenType.MULT, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.MULT, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '/':
-                    tokens.add(new Token(TokenType.DIV, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.DIV, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case ';':
-                    tokens.add(new Token(TokenType.PUNTO_Y_COMA, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.PUNTO_Y_COMA, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '(':
-                    tokens.add(new Token(TokenType.PARENTESIS_ABIERTO, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.PARENTESIS_ABIERTO, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case ')':
-                    tokens.add(new Token(TokenType.PARENTESIS_CERRADO, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.PARENTESIS_CERRADO, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '{':
-                    tokens.add(new Token(TokenType.LLAVE_ABIERTA, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.LLAVE_ABIERTA, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '}':
-                    tokens.add(new Token(TokenType.LLAVE_CERRADA, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.LLAVE_CERRADA, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case '[':
-                    tokens.add(new Token(TokenType.CORCHETE_ABIERTO, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.CORCHETE_ABIERTO, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 case ']':
-                    tokens.add(new Token(TokenType.CORCHETE_CERRADO, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.CORCHETE_CERRADO, String.valueOf(current), lineaActual));
                     pos++;
                     break;
                 default:
-                    tokens.add(new Token(TokenType.ERROR, String.valueOf(current)));
+                    tokens.add(new Token(TokenType.ERROR, String.valueOf(current), lineaActual));
                     pos++;
                     break;
             }
         }
         return tokens;
     }
+
     private Token leerIdentificadorPalabrasReservadas() {
         StringBuilder sb = new StringBuilder();
         while (pos < input.length() && Character.isLetterOrDigit(input.charAt(pos))) {
@@ -168,31 +183,28 @@ public class Lexer {
         }
         String palabra = sb.toString().toLowerCase();
         TokenType tipo;
-        //buleanos
+        
         if(palabra.equals("true") || palabra.equals("false")){
             tipo = TokenType.BOOLEANO;
         }
-        //nulo
         else if(palabra.equals("null")){
             tipo = TokenType.NULL;
         }
-        //modificadores de acceso
         else if(modificadoresAcceso.contains(palabra)){
             tipo = TokenType.MODIFICADOR_ACCESO;
         }
-        //modificadores de comportamiento
         else if(modificadoresComportamiento.contains(palabra)){
             tipo = TokenType.MODIFICADOR_COMPORTAMIENTO;
         }
-        //otras palabras reservadas
         else if(otrasPalabrasClave.contains(palabra)){
             tipo = TokenType.PALABRA_CLAVE;
         }
-        //Identificadores
         else 
             tipo = TokenType.IDENTIFIER;
-        return new Token(tipo, sb.toString());
+            
+        return new Token(tipo, sb.toString(), lineaActual);
     }
+
     private Token readNumber() {
         StringBuilder sb = new StringBuilder();
         boolean hasDot = false;
@@ -211,12 +223,14 @@ public class Lexer {
                 break;
             }
         }
-        return new Token(TokenType.NUMBER, sb.toString());
+        return new Token(TokenType.NUMBER, sb.toString(), lineaActual);
     }
+
     private char obtenerCaracterSiguiente() {
         if (pos + 1 >= input.length()) return '\0';
         return input.charAt(pos + 1);
     }
+
     public void mostrarAnalisis() {
         List<Token> listaObtenida = tokenize();
         for(int i = 0; i < listaObtenida.size(); i++){
