@@ -45,7 +45,6 @@ public class Ventana1Controller {
                
                 if (t.getType() == TokenType.ERROR) {
                     txtConsola.setText("ERROR LEXICO: Simbolo no reconocido -> " + t.getLexema());
-                    return; 
                 }
             }
 
