@@ -35,43 +35,40 @@ public class Ventana1Controller {
             return;
         }
 
-        try {
-            //Anlisis lexico
-            Lexer lexer = new Lexer(codigo);
-            List<Token> tokens = lexer.tokenize();
-            
-            boolean hayErrorLexico = false;
-            for (Token t : tokens) {
-                listTokens.getItems().add(t.toString());
-                if (t.getType() == TokenType.ERROR) {
-                    hayErrorLexico = true;
-                    txtConsola.appendText(
-                        "✗ ERROR LÉXICO  [Línea " + t.getLinea() + "]: "
-                        + "Símbolo no reconocido → '" + t.getLexema() + "'\n"
-                    );
-                }
+        //Anlisis lexico
+        Lexer lexer = new Lexer(codigo);
+        List<Token> tokens = lexer.tokenize();
+        
+        boolean hayErrorLexico = false;
+        for (Token t : tokens) {
+            listTokens.getItems().add(t.toString());
+            if (t.getType() == TokenType.ERROR) {
+                hayErrorLexico = true;
+                txtConsola.appendText(
+                    "✗ ERROR LÉXICO  [Línea " + t.getLinea() + "]: "
+                    + "Símbolo no reconocido → '" + t.getLexema() + "'\n"
+                );
             }
-            if (hayErrorLexico) {
-                txtConsola.appendText("\nAnálisis detenido: corrige los errores léxicos primero.\n");
-                mostrarResumenEstructura("Análisis léxico fallido. Sin estructura disponible.");
-                return;
-            }
-    
-            txtConsola.appendText("LÉXICO: Sin errores.\n\n");
+        }
+        if (hayErrorLexico) {
+            txtConsola.appendText("\nAnálisis detenido: corrige los errores léxicos primero.\n");
+            mostrarResumenEstructura("Análisis léxico fallido. Sin estructura disponible.");
+            return;
+        }
 
-            //Analisis semantico
-            SemanticAnalyzer analyzer = new SemanticAnalyzer();
-            // Resetear la tabla de símbolos antes de cada análisis
-            analyzer.getSymbolTable().reset();
+        txtConsola.appendText("LÉXICO: Sin errores.\n\n");
+
+        //Analisis semantico
+        SemanticAnalyzer analyzer = new SemanticAnalyzer();
+        // Resetear la tabla de símbolos antes de cada análisis
+        analyzer.getSymbolTable().reset();
+        try {
             //Analisis sintactico
             Parser parser = new Parser(tokens, analyzer);
             parser.parse(); 
             
             txtConsola.appendText("=== SINTAXIS ===\nCorrecta\n\n");
             txtConsola.appendText("=== SEMANTICA ===\nCorrecta\n");
-
-            //Mostrar estructura
-            mostrarEstructura(tokens, analyzer);
 
         } catch (SyntaxException ex) {
             txtConsola.setText(" ERROR SINTACTICO \n" + ex.getMessage());
@@ -80,6 +77,8 @@ public class Ventana1Controller {
         } catch (Exception ex) {
             txtConsola.setText(" ERROR INESPERADO \n" + ex.getMessage());
         }
+        //Mostrar estructura
+        mostrarEstructura(tokens, analyzer);
     }
     //Metodo para mostrar la estructura
     private void mostrarEstructura(List<Token> tokens, SemanticAnalyzer analyzer) {
