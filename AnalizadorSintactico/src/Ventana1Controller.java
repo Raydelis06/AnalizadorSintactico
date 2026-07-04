@@ -86,9 +86,9 @@ public class Ventana1Controller {
         listEstructura.getItems().add("  ESTRUCTURA DEL PROGRAMA");
         listEstructura.getItems().add("══════════════════════════════════════");
  
-        // ── Sentencias detectadas (reconstrucción desde tokens) ─────────
+        // Sentencias detectadas (reconstrucción desde tokens)
         listEstructura.getItems().add("");
-        listEstructura.getItems().add("▸ SENTENCIAS RECONOCIDAS:");
+        listEstructura.getItems().add("--- SENTENCIAS RECONOCIDAS: ----------");
  
         int numSentencia = 1;
         StringBuilder sentenciaActual = new StringBuilder();
@@ -107,7 +107,7 @@ public class Ventana1Controller {
                     sentenciaActual.setLength(0);
                 }
                 listEstructura.getItems().add(
-                    "  " + indentar(profundidad - 1) + "{ — Inicio de bloque"
+                    "  " + indentar(profundidad - 1) + "{ —> Inicio de bloque"
                 );
                 continue;
             }
@@ -119,7 +119,7 @@ public class Ventana1Controller {
                 }
                 profundidad = Math.max(0, profundidad - 1);
                 listEstructura.getItems().add(
-                    "  " + indentar(profundidad) + "} — Fin de bloque"
+                    "  " + indentar(profundidad) + "} —> Fin de bloque"
                 );
                 continue;
             }
@@ -150,7 +150,7 @@ public class Ventana1Controller {
  
         // ── Tabla de símbolos ───────────────────────────────────────────
         listEstructura.getItems().add("");
-        listEstructura.getItems().add("▸ TABLA DE SÍMBOLOS:");
+        listEstructura.getItems().add("--- TABLA DE SÍMBOLOS: ---------------");
         listEstructura.getItems().add(
             "  " + padDerecha("Nombre", 15)
                  + padDerecha("Tipo", 12)
