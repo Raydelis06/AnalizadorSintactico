@@ -3,21 +3,107 @@ import java.util.List;
 public class Parser {
 
     private final List<Token> tokens;
+
     private int current = 0;
+
     private SemanticAnalyzer analyzer;
 
     public Parser(List<Token> tokens, SemanticAnalyzer analyzer) {
+
         this.tokens = tokens;
+        
         this.analyzer = analyzer;
     }
 
+   
     public void parse() throws SyntaxException, SemanticException {
-        asignacion();
-        if (!isAtEnd() && peek().getType() != TokenType.EOF) {
-            throw new SyntaxException("Linea " + getLineNumber() + ": Elementos inesperados al final de la instruccion.");
+        while (!isAtEnd() && peek().getType() != TokenType.EOF) {
+            sentencia();
         }
     }
 
+    
+    public void sentencia() throws SyntaxException, SemanticException {
+    
+        if (check(TokenType.PALABRA_CLAVE) && esTipoDeDato(peek().getLexema())) {
+            parseDeclaracion();
+        } 
+        
+        else if (check(TokenType.LLAVE_ABIERTA)) {
+            parseBloque();
+        } 
+        
+        else {
+            asignacion();
+          
+
+            if (check(TokenType.PUNTO_Y_COMA)) {
+                advance();
+            } else {
+                throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba ';' al final de la instruccion.");
+            }
+        }
+    }
+
+   
+    public void parseBloque() throws SyntaxException, SemanticException {
+        if (check(TokenType.LLAVE_ABIERTA)) {
+            advance(); 
+            
+            
+            analyzer.getSymbolTable().entrarAmbito(); 
+            
+            while (!check(TokenType.LLAVE_CERRADA) && !isAtEnd()) {
+                sentencia(); 
+            }
+            
+            if (check(TokenType.LLAVE_CERRADA)) {
+                advance(); 
+               
+                analyzer.getSymbolTable().salirAmbito(); 
+            } else {
+                throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba '}' para cerrar el bloque.");
+            }
+        } else {
+            
+
+            sentencia();
+        }
+    }
+
+    public void parseDeclaracion() throws SyntaxException, SemanticException {
+        
+        String tipoDestino = peek().getLexema();
+        advance(); 
+
+        if (!check(TokenType.IDENTIFIER)) {
+            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba un identificador despues del tipo de dato.");
+        }
+        
+        String nombreVar = peek().getLexema();
+        advance();
+
+        String tipoExpresion = tipoDestino; 
+
+      
+        if (check(TokenType.ASSIGN)) {
+            advance(); 
+            tipoExpresion = expresion();
+            analyzer.checkAssignment(tipoDestino, tipoExpresion);
+        }
+
+
+        if (check(TokenType.PUNTO_Y_COMA)) {
+            advance(); 
+        } else {
+            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba ';' al final de la declaracion.");
+        }
+
+       
+        analyzer.declareVariable(nombreVar, tipoDestino);
+    }
+
+    
     private void asignacion() throws SyntaxException, SemanticException {
         if (!check(TokenType.IDENTIFIER)) {
             throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba IDENTIFIER al inicio");
@@ -27,22 +113,15 @@ public class Parser {
         advance();
 
         if (!check(TokenType.ASSIGN)) {
-            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba ':='");
+            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba ':=' o '='");
         }
         advance();
 
         String tipoExpresion = expresion();
         
-        try {
-            String tipoExistente = analyzer.checkVariable(varName);
-            analyzer.checkAssignment(tipoExistente, tipoExpresion);
-        } catch (SemanticException e) {
-            if (e.getMessage().contains("no declarada")) {
-                analyzer.declareVariable(varName, tipoExpresion);
-            } else {
-                throw e;
-            }
-        }
+       
+        String tipoExistente = analyzer.checkVariable(varName);
+        analyzer.checkAssignment(tipoExistente, tipoExpresion);
     }
 
     private String expresion() throws SyntaxException, SemanticException {
@@ -68,6 +147,14 @@ public class Parser {
         } else {
             throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba NUMBER o IDENTIFIER");
         }
+    }
+
+    
+    
+    private boolean esTipoDeDato(String lexema) {
+        String l = lexema.toLowerCase();
+        return l.equals("int") || l.equals("string") || l.equals("boolean") || 
+               l.equals("double") || l.equals("char") || l.equals("byte") || l.equals("long");
     }
 
     private boolean match(TokenType... types) {
