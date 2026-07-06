@@ -207,7 +207,7 @@ public class Lexer {
                     }
                     break;
                 case '<':
-                    if (current == '<' && obtenerCaracterSiguiente() == '=') {
+                    if (obtenerCaracterSiguiente() == '=') { // MODIFICACIÓN: Condición corregida 
                         tokens.add(new Token(TokenType.OPERADOR_COMPARACION, "<=", lineaActual));
                         pos += 2;
                         continue;
@@ -217,7 +217,7 @@ public class Lexer {
                     }
                     break;
                 case '>':
-                    if (current == '>' && obtenerCaracterSiguiente() == '=') {
+                    if (obtenerCaracterSiguiente() == '=') { // MODIFICACIÓN: Condición corregida
                         tokens.add(new Token(TokenType.OPERADOR_COMPARACION, ">=", lineaActual));
                         pos += 2;
                         continue;
@@ -226,6 +226,30 @@ public class Lexer {
                         pos++;
                     }
                     break;
+                
+                // MODIFICACIÓN: Inicio de agregados para && y ||
+                case '&':
+                    if (obtenerCaracterSiguiente() == '&') {
+                        tokens.add(new Token(TokenType.OPERADOR_LOGICO, "&&", lineaActual));
+                        pos += 2;
+                        continue;
+                    } else {
+                        tokens.add(new Token(TokenType.ERROR, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
+                    break;
+                case '|':
+                    if (obtenerCaracterSiguiente() == '|') {
+                        tokens.add(new Token(TokenType.OPERADOR_LOGICO, "||", lineaActual));
+                        pos += 2;
+                        continue;
+                    } else {
+                        tokens.add(new Token(TokenType.ERROR, String.valueOf(current), lineaActual));
+                        pos++;
+                    }
+                    break;
+                // MODIFICACIÓN: Fin de agregados
+
                 default:
                     tokens.add(new Token(TokenType.ERROR, String.valueOf(current), lineaActual));
                     pos++;
