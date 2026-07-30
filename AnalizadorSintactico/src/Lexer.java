@@ -8,10 +8,12 @@ public class Lexer {
     private int lineaActual = 1;
     private List<String> modificadoresAcceso = Arrays.asList("public", "private", "protected");
     private List<String> modificadoresComportamiento = Arrays.asList("static", "final", "abstract", "void");
+    
+    // Se añadió "print" a la lista de palabras clave para que el Lexer no lo confunda con una variable - JuanC
     private List<String> otrasPalabrasClave = Arrays.asList("int", "string", "new", "if", "while", 
         "for", "return", "do", "char", "else", "class", "break", "boolean", "finally", "super",
         "package", "import", "switch", "case", "continue", "default", "long", "byte", "implements", 
-        "double", "interface", "extends", "this"
+        "double", "interface", "extends", "this", "print"
     );
 
     public Lexer(String input) {
