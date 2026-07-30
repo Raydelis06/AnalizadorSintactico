@@ -65,10 +65,42 @@ public class Ventana1Controller {
         try {
             //Analisis sintactico
             Parser parser = new Parser(tokens, analyzer);
-            parser.parse(); 
             
-            txtConsola.appendText("=== SINTAXIS ===\nCorrecta\n\n");
-            txtConsola.appendText("=== SEMANTICA ===\nCorrecta\n");
+            // MODIFICACIÓN: Recuperamos el programa (AST) del parser - JuanC
+            List<AST.Instruccion> programa = parser.parse(); 
+            
+            txtConsola.appendText("=== SINTAXIS ===\nCorrecta\n");
+            txtConsola.appendText("=== SEMANTICA ===\nCorrecta\n\n");
+            
+            // --- NUEVO: Fase de Ejecución / Interpretación - JuanC ---
+            txtConsola.appendText("=== RESULTADO DE EJECUCIÓN ===\n");
+            
+            Evaluador evaluador = new Evaluador();
+            evaluador.ejecutar(programa);
+            
+            // Obtener salidas y errores del Evaluador - JuanC
+            List<String> erroresEjecucion = evaluador.getErroresEjecucion();
+            List<String> salidasConsola = evaluador.getSalidaConsola();
+            
+            // Imprimir errores de ejecución (si los hay) - JuanC
+            if (!erroresEjecucion.isEmpty()) {
+                txtConsola.appendText(" ERRORES DE EJECUCIÓN:\n");
+                for (String error : erroresEjecucion) {
+                    txtConsola.appendText("  -> " + error + "\n");
+                }
+                txtConsola.appendText("\n");
+            }
+            
+            // Imprimir la salida estándar (prints) - JuanC
+            if (salidasConsola.isEmpty() && erroresEjecucion.isEmpty()) {
+                txtConsola.appendText("(El programa finalizó sin salidas por pantalla)\n");
+            } else {
+                for (String salida : salidasConsola) {
+                    txtConsola.appendText(salida + "\n");
+                }
+            }
+            txtConsola.appendText("\n==============================\n");
+            // --- FIN NUEVO - JuanC ---
 
         } catch (SyntaxException ex) {
             txtConsola.setText(" ERROR SINTACTICO \n" + ex.getMessage());
