@@ -1,11 +1,26 @@
+import java.net.URL;
 import java.util.List;
+import java.util.ResourceBundle;
+
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
+import javafx.scene.layout.CornerRadii;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 
-public class Ventana1Controller {
+public class Ventana1Controller implements Initializable{
 
     @FXML
     private Button btnAnalizar;
@@ -22,6 +37,51 @@ public class Ventana1Controller {
     @FXML
     private TextArea txtInput;
 
+    @FXML
+    private ListView<Integer> listNumeros;
+    
+    private ObservableList<Integer> numeros;
+
+    @Override
+    public void initialize(URL arg0, ResourceBundle arg1) {
+        //estilo del listview
+        listNumeros.setCellFactory(lv -> new ListCell<Integer>() {
+            @Override
+            protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.toString());
+                    setTextFill(Color.web("#5e6372")); 
+                    setFont(Font.font("Consolas", 13)); 
+                    setPadding(new Insets(2.3,0,0,6)); // espacio entre ítems
+                    setBackground(new Background(new BackgroundFill(
+                        Color.web("transparent"), CornerRadii.EMPTY, Insets.EMPTY
+                    )));
+                }
+            }
+        });
+
+        numeros = FXCollections.observableArrayList();
+        listNumeros.setItems(numeros);
+        //Listener del textArea
+        txtInput.textProperty().addListener(new ChangeListener<String>() {
+            @Override
+            public void changed(ObservableValue<? extends String> arg0, String arg1, String arg2) {
+                numeros.clear();
+                String[] lineas = txtInput.getText().split("\n", -1); 
+                for(int i = 0; i < lineas.length; i++){
+                    numeros.add(i + 1);
+                }
+            }
+        });
+        //Sincronizar scroll
+        txtInput.scrollTopProperty().addListener((observable, oldValue, newValue) -> {
+            listNumeros.scrollTo(newValue.intValue());
+        });
+    }
+    
     @FXML
     void analizarCodigo(ActionEvent event) {
         listTokens.getItems().clear();
@@ -217,4 +277,5 @@ public class Ventana1Controller {
         if (texto.length() >= ancho) return texto.substring(0, ancho);
         return texto + " ".repeat(ancho - texto.length());
     }
+    
 }
