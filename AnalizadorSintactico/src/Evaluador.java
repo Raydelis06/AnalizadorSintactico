@@ -258,15 +258,22 @@ public class Evaluador {
             boolean sonEnteros = (izq instanceof Integer) && (der instanceof Integer);
 
             switch (op) {
-                case "+": return sonEnteros ? (int)(v1 + v2) : (v1 + v2);
-                case "-": return sonEnteros ? (int)(v1 - v2) : (v1 - v2);
-                case "*": return sonEnteros ? (int)(v1 * v2) : (v1 * v2);
+                case "+": 
+                    if (sonEnteros) return (int)(v1 + v2);
+                    return v1 + v2;
+                case "-": 
+                    if (sonEnteros) return (int)(v1 - v2);
+                    return v1 - v2;
+                case "*": 
+                    if (sonEnteros) return (int)(v1 * v2);
+                    return v1 * v2;
                 case "/":
                     if (v2 == 0) { 
                         reportarError("Error matemático: División por cero."); 
                         return null; 
                     }
-                    return sonEnteros ? (int)(v1 / v2) : (v1 / v2);
+                    if (sonEnteros) return (int)(v1 / v2);
+                    return v1 / v2;
                 case "<": return v1 < v2;
                 case ">": return v1 > v2;
                 case "<=": return v1 <= v2;
