@@ -32,18 +32,33 @@
     <Label text="Código Fuente:"
            style="-fx-text-fill: #a1c6e3; -fx-font-size: 13px; -fx-font-weight: bold;" />
 
-    <TextArea fx:id="txtInput"
-              prefHeight="500"
-              promptText="Escribe tu código aquí..."
-              style="-fx-control-inner-background: #313244;
-                     -fx-text-fill: #cdd6f4;
-                     -fx-font-family: 'Consolas';
-                     -fx-font-size: 13px;
-                     -fx-border-color: #45475a;
-                     -fx-border-radius: 4;
-                     -fx-background-radius: 4;">
-        <VBox.margin><Insets /></VBox.margin>
-    </TextArea>
+    <HBox fx:id="numberedArea">
+        <ListView fx:id="listNumeros" 
+                    prefWidth="60"
+                    editable="false"
+                    focusTraversable="false"
+                    style="
+                            -fx-control-inner-background: #313244;
+                            -fx-border-radius: 4;
+                            -fx-background-radius: 4;
+                            -fx-border-color: #313244;">
+        </ListView>
+        <TextArea fx:id="txtInput"
+            prefHeight="500"
+            promptText="Escribe tu código aquí..."
+            style="-fx-control-inner-background: #313244;
+                    -fx-text-fill: #cdd6f4;
+                    -fx-font-family: 'Consolas';
+                    -fx-font-size: 13px;
+                    -fx-border-color: #45475a;
+                    -fx-border-radius: 4;
+                    -fx-background-radius: 4;"
+                    
+            HBox.hgrow="ALWAYS">
+            <VBox.margin><Insets /></VBox.margin>
+        </TextArea>
+    </HBox>
+    
 
     <!-- Botón de análisis -->
     <HBox alignment="CENTER_LEFT" spacing="10.0">
