@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class Parser {
@@ -11,285 +12,356 @@ public class Parser {
         this.analyzer = analyzer;
     }
 
-    public void parse() throws SyntaxException, SemanticException {
+   
+    public List<AST.Instruccion> parse() throws SyntaxException, SemanticException {
+        List<AST.Instruccion> instrucciones = new ArrayList<>();
         while (!isAtEnd() && peek().getType() != TokenType.EOF) {
-            sentencia();
+            instrucciones.add(sentencia());
         }
+        return instrucciones;
     }
 
-    // MODIFICACIÓN: sentencia() actualizada para soportar if, switch, y saltos.
-    public void sentencia() throws SyntaxException, SemanticException {
+    private AST.Instruccion sentencia() throws SyntaxException, SemanticException {
         if (check(TokenType.PALABRA_CLAVE)) {
             String lexema = peek().getLexema().toLowerCase();
             
             if (esTipoDeDato(lexema)) {
-                parseDeclaracion();
-                return;
-            } 
-            else if (lexema.equals("if")) {
-                parseIf();
-                return;
-            } 
-            else if (lexema.equals("switch")) {
-                parseSwitch();
-                return;
+                return parseDeclaracion();
+            } else if (lexema.equals("if")) {
+                return parseIf();
+            } else if (lexema.equals("while")) {
+                return parseWhile();
+            } else if (lexema.equals("do")) {
+                return parseDoWhile();
+            } else if (lexema.equals("for")) {
+                return parseFor();
+            } else if (lexema.equals("print")) {
+                return parsePrint();
             }
-            else if (lexema.equals("break") || lexema.equals("continue") || lexema.equals("return")) {
-                advance(); 
-                if (match(TokenType.PUNTO_Y_COMA)) {
-                    return;
-                } else {
-                    throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ';' después de '" + lexema + "'.");
-                }
-            }
-        } 
+        }
         
         if (check(TokenType.LLAVE_ABIERTA)) {
-            parseBloque();
-        } 
-        else {
-            asignacion();
-            if (match(TokenType.PUNTO_Y_COMA)) {
-                // match ya hace advance()
-            } else {
-                throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba ';' al final de la instruccion.");
-            }
+            return parseBloque();
         }
-    }
 
-    public void parseBloque() throws SyntaxException, SemanticException {
-        if (check(TokenType.LLAVE_ABIERTA)) {
-            advance(); 
-            analyzer.getSymbolTable().entrarAmbito(); 
-            
-            while (!check(TokenType.LLAVE_CERRADA) && !isAtEnd()) {
-                sentencia(); 
-            }
-            
-            if (check(TokenType.LLAVE_CERRADA)) {
-                advance(); 
-                analyzer.getSymbolTable().salirAmbito(); 
-            } else {
-                throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba '}' para cerrar el bloque.");
-            }
+       
+        AST.Instruccion asig = parseAsignacionBasica();
+        if (match(TokenType.PUNTO_Y_COMA)) {
+            return asig;
         } else {
-            sentencia();
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ';' al final de la instrucción.");
         }
     }
 
-    public void parseDeclaracion() throws SyntaxException, SemanticException {
+    private AST.InstruccionBloque parseBloque() throws SyntaxException, SemanticException {
+        if (!match(TokenType.LLAVE_ABIERTA)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba '{' al inicio del bloque.");
+        }
+
+        analyzer.getSymbolTable().entrarAmbito();
+        List<AST.Instruccion> cuerpo = new ArrayList<>();
+
+        while (!check(TokenType.LLAVE_CERRADA) && !isAtEnd()) {
+            cuerpo.add(sentencia());
+        }
+
+        if (!match(TokenType.LLAVE_CERRADA)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba '}' para cerrar el bloque.");
+        }
+
+        analyzer.getSymbolTable().salirAmbito();
+        return new AST.InstruccionBloque(cuerpo);
+    }
+
+    private AST.Instruccion parseDeclaracion() throws SyntaxException, SemanticException {
         String tipoDestino = peek().getLexema();
         advance(); 
 
         if (!check(TokenType.IDENTIFIER)) {
-            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba un identificador despues del tipo de dato.");
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba un identificador después del tipo.");
         }
         
         String nombreVar = peek().getLexema();
         advance();
+
+        AST.Expresion valorInicial = null;
         String tipoExpresion = tipoDestino; 
 
-        if (check(TokenType.ASSIGN)) {
-            advance(); 
-            tipoExpresion = expresion();
+        
+        if (check(TokenType.ASSIGN) && peek().getLexema().equals(":=")) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": El operador ':=' no es válido. Usa '=' para asignaciones.");
+        }
+
+        // Java puro: solo =
+        if (match(TokenType.ASSIGN)) {
+            valorInicial = expresion();
+            tipoExpresion = valorInicial.tipoDatoRecuperado;
             analyzer.checkAssignment(tipoDestino, tipoExpresion);
         }
 
-        if (check(TokenType.PUNTO_Y_COMA)) {
-            advance(); 
-        } else {
-            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba ';' al final de la declaracion.");
+        if (!match(TokenType.PUNTO_Y_COMA)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ';' al final de la declaración.");
         }
 
         analyzer.declareVariable(nombreVar, tipoDestino);
+        return new AST.InstruccionDeclaracion(tipoDestino, nombreVar, valorInicial);
     }
 
-    private void asignacion() throws SyntaxException, SemanticException {
+    private AST.InstruccionAsignacion parseAsignacionBasica() throws SyntaxException, SemanticException {
         if (!check(TokenType.IDENTIFIER)) {
-            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba IDENTIFIER al inicio");
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba IDENTIFIER.");
         }
         
-        String varName = peek().getLexema();
+        String nombreVar = peek().getLexema();
         advance();
 
-        if (!check(TokenType.ASSIGN)) {
-            throw new SyntaxException("Linea " + getLineNumber() + ": Se esperaba ':=' o '='");
+        
+        if (check(TokenType.ASSIGN) && peek().getLexema().equals(":=")) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": El operador ':=' no es válido. Usa '=' o compuestos (+=, -=, etc).");
         }
+
+        
+        if (!check(TokenType.ASSIGN) && !check(TokenType.OPERADOR_ARITMETICO)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba un operador de asignación (=, +=, -=, *=, /=).");
+        }
+        
+        String operador = peek().getLexema();
         advance();
 
-        String tipoExpresion = expresion();
-        String tipoExistente = analyzer.checkVariable(varName);
-        analyzer.checkAssignment(tipoExistente, tipoExpresion);
+        AST.Expresion valor = expresion();
+        String tipoExistente = analyzer.checkVariable(nombreVar); 
+        
+        if (operador.equals("=")) {
+            analyzer.checkAssignment(tipoExistente, valor.tipoDatoRecuperado);
+        } else {
+            
+            analyzer.checkOperation(tipoExistente, valor.tipoDatoRecuperado, operador);
+        }
+
+        return new AST.InstruccionAsignacion(nombreVar, operador, valor);
     }
 
-    // MODIFICACIÓN: Inicio de agregados para 'if' y 'switch'
-    private void parseIf() throws SyntaxException, SemanticException {
+   
+
+    private AST.InstruccionIf parseIf() throws SyntaxException, SemanticException {
         advance(); 
         
-        if (!match(TokenType.PARENTESIS_ABIERTO)) {
-            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba '(' después de 'if'.");
+        if (!match(TokenType.PARENTESIS_ABIERTO)) throw new SyntaxException("Se esperaba '(' después de 'if'.");
+        AST.Expresion condicion = expresion();
+        if (!"boolean".equals(condicion.tipoDatoRecuperado)) {
+            throw new SemanticException("Línea " + getLineNumber() + ": La condición del 'if' debe ser boolean.");
         }
+        if (!match(TokenType.PARENTESIS_CERRADO)) throw new SyntaxException("Se esperaba ')' después de la condición.");
         
-        String tipoCondicion = expresion();
-        
-        if (!"boolean".equals(tipoCondicion)) {
-            throw new SemanticException("Error semántico en Línea " + getLineNumber() 
-                + ": La condición de la sentencia 'if' debe ser de tipo 'boolean'. Se encontró: '" + tipoCondicion + "'.");
-        }
-        
-        if (!match(TokenType.PARENTESIS_CERRADO)) {
-            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ')' después de la condición del 'if'.");
-        }
-        
-        parseBloque();
+        AST.Instruccion ramaVerdadera = check(TokenType.LLAVE_ABIERTA) ? parseBloque() : sentencia();
+        AST.Instruccion ramaFalsa = null;
         
         if (check(TokenType.PALABRA_CLAVE) && peek().getLexema().equalsIgnoreCase("else")) {
-            advance(); 
-            parseBloque(); 
+            advance();
+            ramaFalsa = check(TokenType.LLAVE_ABIERTA) ? parseBloque() : sentencia();
         }
+        
+        return new AST.InstruccionIf(condicion, ramaVerdadera, ramaFalsa);
     }
 
-    private void parseSwitch() throws SyntaxException, SemanticException {
+    private AST.InstruccionWhile parseWhile() throws SyntaxException, SemanticException {
         advance(); 
         
-        if (!match(TokenType.PARENTESIS_ABIERTO)) {
-            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba '(' después de 'switch'.");
+        if (!match(TokenType.PARENTESIS_ABIERTO)) throw new SyntaxException("Se esperaba '(' después de 'while'.");
+        AST.Expresion condicion = expresion();
+        if (!"boolean".equals(condicion.tipoDatoRecuperado)) {
+            throw new SemanticException("Línea " + getLineNumber() + ": La condición del 'while' debe ser boolean.");
         }
+        if (!match(TokenType.PARENTESIS_CERRADO)) throw new SyntaxException("Se esperaba ')' después de la condición.");
         
-        String tipoSwitch = expresion();
+        AST.Instruccion cuerpo = check(TokenType.LLAVE_ABIERTA) ? parseBloque() : sentencia();
+        return new AST.InstruccionWhile(condicion, cuerpo);
+    }
+
+    private AST.InstruccionDoWhile parseDoWhile() throws SyntaxException, SemanticException {
+        advance(); 
         
-        if (!match(TokenType.PARENTESIS_CERRADO)) {
-            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ')' después de la expresión del 'switch'.");
+        AST.Instruccion cuerpo = check(TokenType.LLAVE_ABIERTA) ? parseBloque() : sentencia();
+        
+        if (!(check(TokenType.PALABRA_CLAVE) && peek().getLexema().equalsIgnoreCase("while"))) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba 'while' al final del bloque 'do'.");
         }
+        advance(); 
         
-        if (!match(TokenType.LLAVE_ABIERTA)) {
-            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba '{' para iniciar el cuerpo del 'switch'.");
+        if (!match(TokenType.PARENTESIS_ABIERTO)) throw new SyntaxException("Se esperaba '('.");
+        AST.Expresion condicion = expresion();
+        if (!"boolean".equals(condicion.tipoDatoRecuperado)) {
+            throw new SemanticException("Línea " + getLineNumber() + ": La condición del 'do-while' debe ser boolean.");
         }
+        if (!match(TokenType.PARENTESIS_CERRADO)) throw new SyntaxException("Se esperaba ')'.");
+        if (!match(TokenType.PUNTO_Y_COMA)) throw new SyntaxException("Se esperaba ';' al final de 'do-while'.");
         
+        return new AST.InstruccionDoWhile(cuerpo, condicion);
+    }
+
+    private AST.InstruccionFor parseFor() throws SyntaxException, SemanticException {
+        advance(); 
+        if (!match(TokenType.PARENTESIS_ABIERTO)) throw new SyntaxException("Se esperaba '(' después de 'for'.");
+        
+       
         analyzer.getSymbolTable().entrarAmbito();
         
-        while (!check(TokenType.LLAVE_CERRADA) && !isAtEnd()) {
-            if (check(TokenType.PALABRA_CLAVE) && peek().getLexema().equalsIgnoreCase("case")) {
-                advance(); 
-                
-                String tipoCase = expresion();
-                if (!tipoSwitch.equals(tipoCase)) {
-                    throw new SemanticException("Error semántico en Línea " + getLineNumber() 
-                        + ": El valor del 'case' (" + tipoCase + ") no es compatible con el tipo del 'switch' (" + tipoSwitch + ").");
-                }
-                
-                if (!match(TokenType.DOS_PUNTOS)) {
-                    throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ':' después del valor del 'case'.");
-                }
-                
-                while (!check(TokenType.LLAVE_CERRADA) && !isAtEnd() && 
-                       !(check(TokenType.PALABRA_CLAVE) && (peek().getLexema().equalsIgnoreCase("case") || peek().getLexema().equalsIgnoreCase("default")))) {
-                    sentencia();
-                }
-            } 
-            else if (check(TokenType.PALABRA_CLAVE) && peek().getLexema().equalsIgnoreCase("default")) {
-                advance(); 
-                
-                if (!match(TokenType.DOS_PUNTOS)) {
-                    throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ':' después de 'default'.");
-                }
-                
-                while (!check(TokenType.LLAVE_CERRADA) && !isAtEnd() && 
-                       !(check(TokenType.PALABRA_CLAVE) && peek().getLexema().equalsIgnoreCase("case"))) {
-                    sentencia();
-                }
-            } 
-            else {
-                throw new SyntaxException("Línea " + getLineNumber() + ": Instrucción inválida dentro de un 'switch'. Se esperaba 'case' o 'default'.");
+        AST.Instruccion inicio = null;
+        if (!match(TokenType.PUNTO_Y_COMA)) { // Si no está vacío
+            if (check(TokenType.PALABRA_CLAVE) && esTipoDeDato(peek().getLexema())) {
+                inicio = parseDeclaracion(); 
+            } else {
+                inicio = parseAsignacionBasica();
+                match(TokenType.PUNTO_Y_COMA);
             }
         }
         
-        if (!match(TokenType.LLAVE_CERRADA)) {
-            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba '}' para cerrar el cuerpo del 'switch'.");
+        AST.Expresion condicion = null;
+        if (!check(TokenType.PUNTO_Y_COMA)) {
+            condicion = expresion();
+            if (!"boolean".equals(condicion.tipoDatoRecuperado)) {
+                throw new SemanticException("Línea " + getLineNumber() + ": La condición del 'for' debe ser boolean.");
+            }
+        }
+        match(TokenType.PUNTO_Y_COMA);
+        
+        AST.Instruccion incremento = null;
+        if (!check(TokenType.PARENTESIS_CERRADO)) {
+            incremento = parseAsignacionBasica(); // Sin ; al final
+        }
+        if (!match(TokenType.PARENTESIS_CERRADO)) throw new SyntaxException("Se esperaba ')' al cerrar for.");
+        
+       
+        AST.Instruccion cuerpo;
+        if (check(TokenType.LLAVE_ABIERTA)) {
+            advance();
+            List<AST.Instruccion> sentenciasCuerpo = new ArrayList<>();
+            while (!check(TokenType.LLAVE_CERRADA) && !isAtEnd()) {
+                sentenciasCuerpo.add(sentencia());
+            }
+            match(TokenType.LLAVE_CERRADA);
+            cuerpo = new AST.InstruccionBloque(sentenciasCuerpo);
+        } else {
+            cuerpo = sentencia();
         }
         
+        
         analyzer.getSymbolTable().salirAmbito();
+        
+        return new AST.InstruccionFor(inicio, condicion, incremento, cuerpo);
     }
-    // MODIFICACIÓN: Fin de agregados para 'if' y 'switch'
 
-    // MODIFICACIÓN: Inicio de cascada de precedencia matemática y relacional (reemplaza a los viejos métodos)
-    private String expresion() throws SyntaxException, SemanticException {
+    private AST.InstruccionPrint parsePrint() throws SyntaxException, SemanticException {
+        advance(); 
+        AST.Expresion expr = expresion();
+        if (!match(TokenType.PUNTO_Y_COMA)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ';' después de print.");
+        }
+        return new AST.InstruccionPrint(expr);
+    }
+
+    
+
+    private AST.Expresion expresion() throws SyntaxException, SemanticException {
         return expresionLogica();
     }
 
-    private String expresionLogica() throws SyntaxException, SemanticException {
-        String tipoIzquierdo = expresionRelacional();
-        
-        while (match(TokenType.OPERADOR_LOGICO)) {
-            Token operador = previous();
-            String tipoDerecho = expresionRelacional();
-            tipoIzquierdo = analyzer.checkOperation(tipoIzquierdo, tipoDerecho, operador.getLexema());
-        }
-        return tipoIzquierdo;
-    }
-
-    private String expresionRelacional() throws SyntaxException, SemanticException {
-        String tipoIzquierdo = termino();
-        
-        while (match(TokenType.OPERADOR_COMPARACION, TokenType.OPERADOR_RELACIONAL)) {
-            Token operador = previous();
-            String tipoDerecho = termino();
-            tipoIzquierdo = analyzer.checkOperation(tipoIzquierdo, tipoDerecho, operador.getLexema());
-        }
-        return tipoIzquierdo;
-    }
-
-    private String termino() throws SyntaxException, SemanticException {
-        String tipoIzquierdo = factor();
-        
-        while (match(TokenType.PLUS, TokenType.MINUS)) {
-            Token operador = previous();
-            String tipoDerecho = factor();
-            tipoIzquierdo = analyzer.checkOperation(tipoIzquierdo, tipoDerecho, operador.getLexema());
-        }
-        return tipoIzquierdo;
-    }
-
-    private String factor() throws SyntaxException, SemanticException {
-        String tipoIzquierdo = primario();
-        
-        while (match(TokenType.MULT, TokenType.DIV)) {
-            Token operador = previous();
-            String tipoDerecho = primario();
-            tipoIzquierdo = analyzer.checkOperation(tipoIzquierdo, tipoDerecho, operador.getLexema());
-        }
-        return tipoIzquierdo;
-    }
-
-    private String primario() throws SyntaxException, SemanticException {
-        if (check(TokenType.NUMBER)) {
+    private AST.Expresion expresionLogica() throws SyntaxException, SemanticException {
+        AST.Expresion izq = expresionRelacional();
+        while (check(TokenType.OPERADOR_LOGICO)) {
+            String op = peek().getLexema();
             advance();
-            return "int"; 
+            AST.Expresion der = expresionRelacional();
+            
+            AST.ExpresionBinaria bin = new AST.ExpresionBinaria(izq, op, der);
+            bin.tipoDatoRecuperado = analyzer.checkOperation(izq.tipoDatoRecuperado, der.tipoDatoRecuperado, op);
+            izq = bin;
+        }
+        return izq;
+    }
+
+    private AST.Expresion expresionRelacional() throws SyntaxException, SemanticException {
+        AST.Expresion izq = termino();
+        while (check(TokenType.OPERADOR_COMPARACION) || check(TokenType.OPERADOR_RELACIONAL)) {
+            String op = peek().getLexema();
+            advance();
+            AST.Expresion der = termino();
+            
+            AST.ExpresionBinaria bin = new AST.ExpresionBinaria(izq, op, der);
+            bin.tipoDatoRecuperado = analyzer.checkOperation(izq.tipoDatoRecuperado, der.tipoDatoRecuperado, op);
+            izq = bin;
+        }
+        return izq;
+    }
+
+    private AST.Expresion termino() throws SyntaxException, SemanticException {
+        AST.Expresion izq = factor();
+        while (check(TokenType.PLUS) || check(TokenType.MINUS)) {
+            String op = peek().getLexema();
+            advance();
+            AST.Expresion der = factor();
+            
+            AST.ExpresionBinaria bin = new AST.ExpresionBinaria(izq, op, der);
+            bin.tipoDatoRecuperado = analyzer.checkOperation(izq.tipoDatoRecuperado, der.tipoDatoRecuperado, op);
+            izq = bin;
+        }
+        return izq;
+    }
+
+    private AST.Expresion factor() throws SyntaxException, SemanticException {
+        AST.Expresion izq = primario();
+        while (check(TokenType.MULT) || check(TokenType.DIV)) {
+            String op = peek().getLexema();
+            advance();
+            AST.Expresion der = primario();
+            
+            AST.ExpresionBinaria bin = new AST.ExpresionBinaria(izq, op, der);
+            bin.tipoDatoRecuperado = analyzer.checkOperation(izq.tipoDatoRecuperado, der.tipoDatoRecuperado, op);
+            izq = bin;
+        }
+        return izq;
+    }
+
+    private AST.Expresion primario() throws SyntaxException, SemanticException {
+        if (check(TokenType.NUMBER)) {
+            double val = Double.parseDouble(peek().getLexema());
+            advance();
+            AST.ExpresionNumero expr = new AST.ExpresionNumero(val);
+            expr.tipoDatoRecuperado = "double"; 
+            return expr;
         } 
         else if (check(TokenType.IDENTIFIER)) {
             String nombreVar = peek().getLexema();
             advance();
-            return analyzer.checkVariable(nombreVar);
+            AST.ExpresionIdentificador expr = new AST.ExpresionIdentificador(nombreVar);
+            expr.tipoDatoRecuperado = analyzer.checkVariable(nombreVar);
+            return expr;
         } 
-        else if (match(TokenType.BOOLEANO)) {
-            return "boolean";
+        else if (check(TokenType.BOOLEANO)) {
+            boolean val = peek().getLexema().equalsIgnoreCase("true");
+            advance();
+            AST.ExpresionBooleana expr = new AST.ExpresionBooleana(val);
+            expr.tipoDatoRecuperado = "boolean";
+            return expr;
         } 
-        else if (match(TokenType.STRING)) {
-            return "String";
+        else if (check(TokenType.STRING)) {
+            String txt = peek().getLexema();
+            advance();
+            AST.ExpresionCadena expr = new AST.ExpresionCadena(txt);
+            expr.tipoDatoRecuperado = "String";
+            return expr;
         } 
         else if (match(TokenType.PARENTESIS_ABIERTO)) {
-            String tipo = expresion(); 
-            if (match(TokenType.PARENTESIS_CERRADO)) {
-                return tipo;
-            } else {
-                throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ')' para cerrar la expresión.");
-            }
+            AST.Expresion expr = expresion(); 
+            if (!match(TokenType.PARENTESIS_CERRADO)) throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ')'.");
+            return expr;
         } 
         else {
-            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba un valor constante, variable o '(' fijo.");
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba un número, variable, booleano, string o '('.");
         }
     }
-    // MODIFICACIÓN: Fin de cascada de precedencia
+
+    // --- UTILIDADES ---
 
     private boolean esTipoDeDato(String lexema) {
         String l = lexema.toLowerCase();
@@ -315,15 +387,9 @@ public class Parser {
     private void advance() {
         if (!isAtEnd()) current++;
     }
-    
-    private Token previous() {
-        return tokens.get(current - 1);
-    }
 
     private Token peek() {
-        if (current < tokens.size()) {
-            return tokens.get(current);
-        }
+        if (current < tokens.size()) return tokens.get(current);
         return tokens.get(tokens.size() - 1);
     }
 
@@ -332,12 +398,8 @@ public class Parser {
     }
 
     private int getLineNumber() {
-        if (current < tokens.size()) {
-            return tokens.get(current).getLinea();
-        }
-        if (!tokens.isEmpty()) {
-            return tokens.get(tokens.size() - 1).getLinea();
-        }
+        if (current < tokens.size()) return tokens.get(current).getLinea();
+        if (!tokens.isEmpty()) return tokens.get(tokens.size() - 1).getLinea();
         return 1;
     }
 }
