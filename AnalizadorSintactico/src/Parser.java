@@ -324,10 +324,18 @@ public class Parser {
 
     private AST.Expresion primario() throws SyntaxException, SemanticException {
         if (check(TokenType.NUMBER)) {
-            double val = Double.parseDouble(peek().getLexema());
+            String lexema = peek().getLexema();
+            double val = Double.parseDouble(lexema);
             advance();
             AST.ExpresionNumero expr = new AST.ExpresionNumero(val);
-            expr.tipoDatoRecuperado = "double"; 
+            
+            // Diferenciar si es un int o un double verificando el punto decimal - JuanC
+            if (lexema.contains(".")) {
+                expr.tipoDatoRecuperado = "double"; 
+            } else {
+                expr.tipoDatoRecuperado = "int";
+            }
+            
             return expr;
         } 
         else if (check(TokenType.IDENTIFIER)) {
