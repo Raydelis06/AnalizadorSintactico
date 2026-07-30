@@ -42,6 +42,7 @@ public class SymbolTable {
         }
         ambito.put(name, new Symbol(name, type));
     }
+    
     public Symbol getSymbol(String name) throws SemanticException {
         for (Map<String, Symbol> ambito : pilaAmbitos) {
             if (ambito.containsKey(name)) {
@@ -51,6 +52,19 @@ public class SymbolTable {
         throw new SemanticException(
             "Error semántico: Variable '" + name + "' no declarada."
         );
+    }
+
+    // Método para recorrer la pila y actualizar el valor del Symbol en memoria - JuanC
+    public void setValor(String name, Object valor) throws SemanticException {
+        for (Map<String, Symbol> ambito : pilaAmbitos) {
+            if (ambito.containsKey(name)) {
+                Symbol sym = ambito.get(name);
+                sym.setValor(valor);
+                return; // Valor actualizado correctamente, termina el ciclo - JuanC
+            }
+        }
+        // Lanza excepción si se recorren todos los ámbitos sin encontrar la variable - JuanC
+        throw new SemanticException("Error en ejecución: Variable '" + name + "' no existe en ningún ámbito.");
     }
 
     /**
