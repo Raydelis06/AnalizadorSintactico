@@ -23,10 +23,34 @@
         <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
     </padding>
 
-    <Label text=" Analizador Léxico, Sintáctico y Semántico"
+    <HBox spacing="10" alignment="CENTER_LEFT" >
+        <Label text=" Analizador Léxico, Sintáctico y Semántico"
            style="-fx-text-fill: #cdd6f4; -fx-font-size: 16px; -fx-font-weight: bold;">
-        <font><Font name="Consolas" size="16.0" /></font>
-    </Label>
+            <font><Font name="Consolas" size="16.0" /></font>
+        </Label>
+
+        <Button fx:id="btnAbrirArchivo"
+                text="Abrir archivo"
+                style="-fx-background-color: #343446;
+                    -fx-text-fill: #89b4fa;
+                    -fx-font-weight: bold;
+                    -fx-font-size: 13px;
+                    -fx-padding: 6 18 6 18;
+                    -fx-border-radius: 4;
+                    -fx-background-radius: 4;
+                    -fx-cursor: hand;"/>
+        <Button fx:id="btnGuardarArchivo"
+                text="Guardar archivo"
+                style="-fx-background-color: #343446;
+                    -fx-text-fill: #89b4fa;
+                    -fx-font-weight: bold;
+                    -fx-font-size: 13px;
+                    -fx-padding: 6 18 6 18;
+                    -fx-border-radius: 4;
+                    -fx-background-radius: 4;
+                    -fx-cursor: hand;"/>
+        
+    </HBox>
 
     <!--  Área de código fuente -->
     <Label text="Código Fuente:"
