@@ -19,6 +19,7 @@ import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.stage.Stage;
 
 public class Ventana1Controller implements Initializable{
 
@@ -38,12 +39,33 @@ public class Ventana1Controller implements Initializable{
     private TextArea txtInput;
 
     @FXML
+    private Button btnAbrirArchivo;
+
+    @FXML
+    private Button btnGuardarArchivo;
+
+    @FXML
     private ListView<Integer> listNumeros;
     
     private ObservableList<Integer> numeros;
 
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
+        GestorArchivos gestorArchivos = new GestorArchivos();
+
+        // botones
+        btnAbrirArchivo.setOnAction(event -> {
+            Stage stage = (Stage) btnAbrirArchivo.getScene().getWindow();
+            String contenido = gestorArchivos.abrirArchivo(stage);
+            if (contenido != null) {
+                txtInput.setText(contenido);
+            }
+        });
+        btnGuardarArchivo.setOnAction(event -> {
+            Stage stage = (Stage) btnGuardarArchivo.getScene().getWindow();
+            gestorArchivos.guardarArchivo(stage, txtInput.getText());
+        });
+
         //estilo del listview
         listNumeros.setCellFactory(lv -> new ListCell<Integer>() {
             @Override
