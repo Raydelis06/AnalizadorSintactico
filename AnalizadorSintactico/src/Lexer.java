@@ -75,9 +75,27 @@ public class Lexer {
                 continue;
             }
 
+            //reconoce System.out.println para ejecutar un print
             if (input.startsWith("System.out.println", pos)) {
                 tokens.add(new Token(TokenType.PRINT, "System.out.println", lineaActual));
                 pos += "System.out.println".length();
+                continue;
+            }
+            //reconoce las ibrerias importadas
+            if (input.startsWith("import", pos)) {
+                pos += "import".length();
+                while (pos < input.length() && Character.isWhitespace(input.charAt(pos))) {
+                    pos++;
+                }
+                StringBuilder paquete = new StringBuilder();
+
+                while (pos < input.length() && input.charAt(pos) != ';') {
+                    paquete.append(input.charAt(pos));
+                    pos++;
+                }
+                tokens.add(new Token(TokenType.IMPORT,
+                    paquete.toString().trim(),
+                    lineaActual));
                 continue;
             }
 
