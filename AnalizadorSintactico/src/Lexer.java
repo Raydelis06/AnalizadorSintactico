@@ -7,13 +7,13 @@ public class Lexer {
     private int pos;
     private int lineaActual = 1;
     private List<String> modificadoresAcceso = Arrays.asList("public", "private", "protected");
-    private List<String> modificadoresComportamiento = Arrays.asList("static", "final", "abstract", "void");
+    private List<String> modificadoresComportamiento = Arrays.asList("static", "final", "abstract");
     
     // Se añadió "print" a la lista de palabras clave para que el Lexer no lo confunda con una variable - JuanC
     private List<String> otrasPalabrasClave = Arrays.asList("int", "string", "new", "if", "while", 
-        "for", "return", "do", "char", "else", "class", "break", "boolean", "finally", "super",
-        "package", "import", "switch", "case", "continue", "default", "long", "byte", "implements", 
-        "double", "interface", "extends", "this", "print"
+        "for", "return", "do", "char", "else", "break", "boolean", "finally", "super",
+        "package", "switch", "case", "continue", "default", "long", "byte", "implements", 
+        "double", "interface", "extends", "this", "void"
     );
 
     public Lexer(String input) {
@@ -75,6 +75,30 @@ public class Lexer {
                 continue;
             }
 
+            //reconoce System.out.println para ejecutar un print
+            if (input.startsWith("System.out.println", pos)) {
+                tokens.add(new Token(TokenType.PRINT, "System.out.println", lineaActual));
+                pos += "System.out.println".length();
+                continue;
+            }
+            //reconoce las ibrerias importadas
+            if (input.startsWith("import", pos)) {
+                pos += "import".length();
+                while (pos < input.length() && Character.isWhitespace(input.charAt(pos))) {
+                    pos++;
+                }
+                StringBuilder paquete = new StringBuilder();
+
+                while (pos < input.length() && input.charAt(pos) != ';') {
+                    paquete.append(input.charAt(pos));
+                    pos++;
+                }
+                tokens.add(new Token(TokenType.IMPORT,
+                    paquete.toString().trim(),
+                    lineaActual));
+                continue;
+            }
+
             if (Character.isLetter(current) || current == '_') {
                 tokens.add(leerIdentificadorPalabrasReservadas());
                 continue;
@@ -119,6 +143,14 @@ public class Lexer {
                         tokens.add(new Token(TokenType.DOS_PUNTOS, String.valueOf(current), lineaActual));
                         pos++;
                     }
+                    break;
+                case '.':
+                    tokens.add(new Token(TokenType.PUNTO, String.valueOf(current), lineaActual));
+                    pos++;
+                    break;
+                case ',':
+                    tokens.add(new Token(TokenType.COMA, String.valueOf(current), lineaActual));
+                    pos++;
                     break;
                 case '=':
                     if (obtenerCaracterSiguiente() == '=') {
@@ -258,6 +290,7 @@ public class Lexer {
                     break;
             }
         }
+        
         return tokens;
     }
 
@@ -276,6 +309,9 @@ public class Lexer {
         else if(palabra.equals("null")){
             tipo = TokenType.NULL;
         }
+        else if(palabra.equals("class")){
+            tipo = TokenType.CLASS;
+        }
         else if(modificadoresAcceso.contains(palabra)){
             tipo = TokenType.MODIFICADOR_ACCESO;
         }
@@ -284,6 +320,10 @@ public class Lexer {
         }
         else if(otrasPalabrasClave.contains(palabra)){
             tipo = TokenType.PALABRA_CLAVE;
+        }
+        else if(verSiguienteNoBlanco() == '('){
+            // identificador seguido de '(' => nombre de función (declaración o llamada)
+            tipo = TokenType.FUNCION;
         }
         else 
             tipo = TokenType.IDENTIFIER;
@@ -315,6 +355,14 @@ public class Lexer {
     private char obtenerCaracterSiguiente() {
         if (pos + 1 >= input.length()) return '\0';
         return input.charAt(pos + 1);
+    }
+
+    private char verSiguienteNoBlanco() {
+        int i = pos;
+        while (i < input.length() && Character.isWhitespace(input.charAt(i))) {
+            i++;
+        }
+        return (i < input.length()) ? input.charAt(i) : '\0';
     }
 
     public void mostrarAnalisis() {

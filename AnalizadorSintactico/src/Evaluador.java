@@ -24,6 +24,18 @@ public class Evaluador {
     }
 
     // Método principal para ejecutar el AST completo - JuanC
+    // public void ejecutar(List<AST.Instruccion> programa) {
+    //     // Limpia la salida y errores al inicio de cada ejecución - JuanC
+    //     this.salidaConsola.clear();
+    //     this.erroresEjecucion.clear();
+    //     this.memoria = new SymbolTable(); // Se instancia separada de la del Parser - JuanC
+    //     this.detenerEjecucion = false;
+
+    //     for (AST.Instruccion inst : programa) {
+    //         if (detenerEjecucion) break;
+    //         ejecutarInstruccion(inst);
+    //     }
+    // }
     public void ejecutar(List<AST.Instruccion> programa) {
         // Limpia la salida y errores al inicio de cada ejecución - JuanC
         this.salidaConsola.clear();
@@ -31,10 +43,29 @@ public class Evaluador {
         this.memoria = new SymbolTable(); // Se instancia separada de la del Parser - JuanC
         this.detenerEjecucion = false;
 
-        for (AST.Instruccion inst : programa) {
-            if (detenerEjecucion) break;
-            ejecutarInstruccion(inst);
+        AST.InstruccionFuncion main = buscarMain(programa);
+        if (main == null) {
+            reportarError("Error: no se encontró un método 'main' (public static void main) dentro de ninguna clase. No hay nada que ejecutar.");
+            return;
         }
+
+        ejecutarInstruccion(main.cuerpo);
+    }
+    private AST.InstruccionFuncion buscarMain(List<AST.Instruccion> programa) {
+        for (AST.Instruccion inst : programa) {
+            if (inst instanceof AST.InstruccionClase) {
+                AST.InstruccionClase clase = (AST.InstruccionClase) inst;
+                for (AST.Instruccion miembro : clase.cuerpo.instrucciones) {
+                    if (miembro instanceof AST.InstruccionFuncion) {
+                        AST.InstruccionFuncion func = (AST.InstruccionFuncion) miembro;
+                        if (func.nombre.equalsIgnoreCase("main") && func.modificadores.contains("static")) {
+                            return func;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     // Manejador centralizado para atrapar errores y detener ejecución limpiamente sin crashes - JuanC
