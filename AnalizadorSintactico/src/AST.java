@@ -142,4 +142,50 @@ public class AST {
             this.operando = operando;
         }
     }
+
+    public static class InstruccionClase extends Instruccion {
+        public final List<String> modificadores;
+        public final String nombre;
+        public final InstruccionBloque cuerpo;
+
+        public InstruccionClase(List<String> modificadores, String nombre, InstruccionBloque cuerpo) {
+            this.modificadores = modificadores;
+            this.nombre = nombre;
+            this.cuerpo = cuerpo;
+        }
+    }
+
+    public static class InstruccionFuncion extends Instruccion {
+        public final List<String> modificadores;
+        public final String tipoRetorno;
+        public final String nombre;
+        public final List<Parametro> parametros;
+        public final InstruccionBloque cuerpo;
+
+        public InstruccionFuncion(List<String> modificadores, String tipoRetorno, String nombre,
+                                List<Parametro> parametros, InstruccionBloque cuerpo) {
+            this.modificadores = modificadores;
+            this.tipoRetorno = tipoRetorno;
+            this.nombre = nombre;
+            this.parametros = parametros;
+            this.cuerpo = cuerpo;
+        }
+    }
+
+    public static class Parametro {
+        public final String tipo;
+        public final String nombre;
+
+        public Parametro(String tipo, String nombre) {
+            this.tipo = tipo;
+            this.nombre = nombre;
+        }
+    }
+    public static class InstruccionImport extends Instruccion {
+        public final String paquete;
+        public InstruccionImport(String paquete) {
+            this.paquete = paquete;
+        }
+    }
+
 }

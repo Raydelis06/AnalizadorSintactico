@@ -15,15 +15,48 @@ public class Parser {
    
     public List<AST.Instruccion> parse() throws SyntaxException, SemanticException {
         List<AST.Instruccion> instrucciones = new ArrayList<>();
+        
+        boolean claseEncontrada = false;
+
+        // A nivel de programa SOLO se permiten imports y declaraciones de clase.
+        // No se puede ejecutar ninguna instrucción suelta fuera de una clase - fix
         while (!isAtEnd() && peek().getType() != TokenType.EOF) {
-            instrucciones.add(sentencia());
+            if (check(TokenType.IMPORT)) {
+                instrucciones.add(parseImport());
+                continue;
+            }
+
+            if (check(TokenType.MODIFICADOR_ACCESO) || check(TokenType.MODIFICADOR_COMPORTAMIENTO) || check(TokenType.CLASS)) {
+                AST.Instruccion decl = parseClaseOFuncion();
+                if (decl instanceof AST.InstruccionClase) {
+                    claseEncontrada = true;
+                }
+                instrucciones.add(decl);
+                continue;
+            }
+
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba un 'import' o una declaración de clase. No se permite código fuera de una clase.");
         }
+
+        if (!claseEncontrada) {
+            throw new SyntaxException("El programa debe contener al menos una clase.");
+        }
+
         return instrucciones;
+        
+        // while (!isAtEnd() && peek().getType() != TokenType.EOF) {
+        //     instrucciones.add(sentencia());
+        // }
+        // return instrucciones;
     }
 
     private AST.Instruccion sentencia() throws SyntaxException, SemanticException {
         if(check(TokenType.PRINT)){
                 return parsePrint();
+        }
+        //toma en cuenta modificadores y clases
+        if (check(TokenType.MODIFICADOR_ACCESO) || check(TokenType.MODIFICADOR_COMPORTAMIENTO) || check(TokenType.CLASS)) {
+            return parseClaseOFuncion();
         }
         if (check(TokenType.PALABRA_CLAVE)) {
             String lexema = peek().getLexema().toLowerCase();
@@ -260,6 +293,16 @@ public class Parser {
         return new AST.InstruccionPrint(expr);
     }
 
+    private AST.InstruccionImport parseImport() throws SyntaxException {
+        String paquete = peek().getLexema();
+        advance(); // consume el token IMPORT (el Lexer ya capturó el nombre del paquete)
+
+        if (!match(TokenType.PUNTO_Y_COMA)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ';' después del import.");
+        }
+        return new AST.InstruccionImport(paquete);
+    }
+
     
 
     private AST.Expresion expresion() throws SyntaxException, SemanticException {
@@ -410,4 +453,92 @@ public class Parser {
         if (!tokens.isEmpty()) return tokens.get(tokens.size() - 1).getLinea();
         return 1;
     }
+
+    private AST.Instruccion parseClaseOFuncion() throws SyntaxException, SemanticException {
+        List<String> modificadores = new ArrayList<>();
+        while (check(TokenType.MODIFICADOR_ACCESO) || check(TokenType.MODIFICADOR_COMPORTAMIENTO)) {
+            modificadores.add(peek().getLexema());
+            advance();
+    }
+
+    if (check(TokenType.CLASS)) {
+        return parseClase(modificadores);
+    }
+
+    // Si no era 'class', lo que sigue es: tipoRetorno nombreFuncion(...)
+    return parseFuncion(modificadores);
+}
+
+    private AST.InstruccionClase parseClase(List<String> modificadores) throws SyntaxException, SemanticException {
+        advance(); // consume 'class'
+
+        if (!check(TokenType.IDENTIFIER)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba el nombre de la clase.");
+        }
+        String nombreClase = peek().getLexema();
+        advance();
+
+        AST.InstruccionBloque cuerpo = parseBloque();
+        return new AST.InstruccionClase(modificadores, nombreClase, cuerpo);
+    }
+
+    private AST.InstruccionFuncion parseFuncion(List<String> modificadores) throws SyntaxException, SemanticException {
+        if (!check(TokenType.PALABRA_CLAVE) && !check(TokenType.IDENTIFIER)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba el tipo de retorno de la función.");
+        }
+        String tipoRetorno = peek().getLexema();
+        advance();
+
+        if (!check(TokenType.FUNCION) && !check(TokenType.IDENTIFIER)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba el nombre de la función.");
+        }
+        String nombreFuncion = peek().getLexema();
+        advance();
+
+        if (!match(TokenType.PARENTESIS_ABIERTO)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba '(' después del nombre de la función.");
+        }
+
+        analyzer.getSymbolTable().entrarAmbito();
+        List<AST.Parametro> parametros = new ArrayList<>();
+
+        if (!check(TokenType.PARENTESIS_CERRADO)) {
+            do {
+                if (!check(TokenType.PALABRA_CLAVE) && !check(TokenType.IDENTIFIER)) {
+                    throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba el tipo de un parámetro.");
+                }
+                String tipoParam = peek().getLexema();
+                advance();
+
+                // Soporte para arreglos en parámetros, ej. String[] args - fix
+                if (check(TokenType.CORCHETE_ABIERTO)) {
+                    advance();
+                    if (!match(TokenType.CORCHETE_CERRADO)) {
+                        throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ']' después de '[' en el tipo del parámetro.");
+                    }
+                    tipoParam += "[]";
+                }
+
+                if (!check(TokenType.IDENTIFIER) && !check(TokenType.FUNCION)) {
+                    throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba el nombre de un parámetro.");
+                }
+                String nombreParam = peek().getLexema();
+                advance();
+
+                analyzer.declareVariable(nombreParam, tipoParam);
+                parametros.add(new AST.Parametro(tipoParam, nombreParam));
+            } while (match(TokenType.COMA));
+        }
+
+        if (!match(TokenType.PARENTESIS_CERRADO)) {
+            throw new SyntaxException("Línea " + getLineNumber() + ": Se esperaba ')' al cerrar los parámetros.");
+        }
+        
+
+        AST.InstruccionBloque cuerpo = parseBloque();
+        analyzer.getSymbolTable().salirAmbito();
+
+        return new AST.InstruccionFuncion(modificadores, tipoRetorno, nombreFuncion, parametros, cuerpo);
+    }
+
 }

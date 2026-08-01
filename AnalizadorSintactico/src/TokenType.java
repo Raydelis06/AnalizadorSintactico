@@ -34,7 +34,9 @@ public enum TokenType {
     ERROR("ERROR_LEXICO"),
     EOF("FIN_DEL_ARCHIVO"), 
     PRINT("PRINT"),
-    IMPORT("IMPORT_LIBRERIA");
+    IMPORT("IMPORT_LIBRERIA"),
+    CLASS("CLASE"),
+    FUNCION("FUNCION");
 
     private final String Descripcion;
 
