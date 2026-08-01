@@ -22,9 +22,11 @@ public class Parser {
     }
 
     private AST.Instruccion sentencia() throws SyntaxException, SemanticException {
+        if(check(TokenType.PRINT)){
+                return parsePrint();
+        }
         if (check(TokenType.PALABRA_CLAVE)) {
             String lexema = peek().getLexema().toLowerCase();
-            
             if (esTipoDeDato(lexema)) {
                 return parseDeclaracion();
             } else if (lexema.equals("if")) {
@@ -35,9 +37,7 @@ public class Parser {
                 return parseDoWhile();
             } else if (lexema.equals("for")) {
                 return parseFor();
-            } else if (lexema.equals("print")) {
-                return parsePrint();
-            }
+            } 
         }
         
         if (check(TokenType.LLAVE_ABIERTA)) {

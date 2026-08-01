@@ -11,6 +11,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextArea;
@@ -39,31 +40,42 @@ public class Ventana1Controller implements Initializable{
     private TextArea txtInput;
 
     @FXML
+    private TextArea txtSalida;
+
+    @FXML
     private Button btnAbrirArchivo;
 
     @FXML
     private Button btnGuardarArchivo;
 
     @FXML
+    private Label nombreArchivo;
+
+    @FXML
     private ListView<Integer> listNumeros;
     
     private ObservableList<Integer> numeros;
+    String nombre = " ";
+    String contenido = " ";
 
     @Override
     public void initialize(URL arg0, ResourceBundle arg1) {
         GestorArchivos gestorArchivos = new GestorArchivos();
-
+        
         // botones
         btnAbrirArchivo.setOnAction(event -> {
             Stage stage = (Stage) btnAbrirArchivo.getScene().getWindow();
-            String contenido = gestorArchivos.abrirArchivo(stage);
+            contenido = gestorArchivos.abrirArchivo(stage);
+            nombre = gestorArchivos.getNombreArchivo();
             if (contenido != null) {
                 txtInput.setText(contenido);
+                nombreArchivo.setText(nombre);
             }
         });
         btnGuardarArchivo.setOnAction(event -> {
             Stage stage = (Stage) btnGuardarArchivo.getScene().getWindow();
             gestorArchivos.guardarArchivo(stage, txtInput.getText());
+            nombreArchivo.setText(nombre);
         });
 
         //estilo del listview
@@ -96,6 +108,7 @@ public class Ventana1Controller implements Initializable{
                 for(int i = 0; i < lineas.length; i++){
                     numeros.add(i + 1);
                 }
+                nombreArchivo.setText(nombre + " *");
             }
         });
         //Sincronizar scroll
@@ -109,6 +122,7 @@ public class Ventana1Controller implements Initializable{
         listTokens.getItems().clear();
         listEstructura.getItems().clear();
         txtConsola.setText("");
+        txtSalida.setText("");
         
         String codigo = txtInput.getText();
 
@@ -117,7 +131,7 @@ public class Ventana1Controller implements Initializable{
             return;
         }
 
-        //Anlisis lexico
+        //Analisis lexico
         Lexer lexer = new Lexer(codigo);
         List<Token> tokens = lexer.tokenize();
         
@@ -127,7 +141,7 @@ public class Ventana1Controller implements Initializable{
             if (t.getType() == TokenType.ERROR) {
                 hayErrorLexico = true;
                 txtConsola.appendText(
-                    "✗ ERROR LÉXICO  [Línea " + t.getLinea() + "]: "
+                    "ERROR LÉXICO  [Línea " + t.getLinea() + "]: "
                     + "Símbolo no reconocido → '" + t.getLexema() + "'\n"
                 );
             }
@@ -137,13 +151,12 @@ public class Ventana1Controller implements Initializable{
             mostrarResumenEstructura("Análisis léxico fallido. Sin estructura disponible.");
             return;
         }
-
         txtConsola.appendText("LÉXICO: Sin errores.\n\n");
 
         //Analisis semantico
         SemanticAnalyzer analyzer = new SemanticAnalyzer();
         // Resetear la tabla de símbolos antes de cada análisis
-        analyzer.getSymbolTable().reset();
+        //analyzer.getSymbolTable().reset();
         try {
             //Analisis sintactico
             Parser parser = new Parser(tokens, analyzer);
@@ -155,7 +168,7 @@ public class Ventana1Controller implements Initializable{
             txtConsola.appendText("=== SEMANTICA ===\nCorrecta\n\n");
             
             // --- NUEVO: Fase de Ejecución / Interpretación - JuanC ---
-            txtConsola.appendText("=== RESULTADO DE EJECUCIÓN ===\n");
+            txtSalida.appendText("=== RESULTADO DE EJECUCIÓN ===\n");
             
             Evaluador evaluador = new Evaluador();
             evaluador.ejecutar(programa);
@@ -166,22 +179,22 @@ public class Ventana1Controller implements Initializable{
             
             // Imprimir errores de ejecución (si los hay) - JuanC
             if (!erroresEjecucion.isEmpty()) {
-                txtConsola.appendText(" ERRORES DE EJECUCIÓN:\n");
+                txtSalida.appendText(" ERRORES DE EJECUCIÓN:\n");
                 for (String error : erroresEjecucion) {
-                    txtConsola.appendText("  -> " + error + "\n");
+                    txtSalida.appendText("  -> " + error + "\n");
                 }
-                txtConsola.appendText("\n");
+                txtSalida.appendText("\n");
             }
             
             // Imprimir la salida estándar (prints) - JuanC
             if (salidasConsola.isEmpty() && erroresEjecucion.isEmpty()) {
-                txtConsola.appendText("(El programa finalizó sin salidas por pantalla)\n");
+                txtSalida.appendText("(El programa finalizó sin salidas por pantalla)\n");
             } else {
                 for (String salida : salidasConsola) {
-                    txtConsola.appendText(salida + "\n");
+                    txtSalida.appendText(salida + "\n");
                 }
             }
-            txtConsola.appendText("\n==============================\n");
+            txtSalida.appendText("\n==============================\n");
             // --- FIN NUEVO - JuanC ---
 
         } catch (SyntaxException ex) {

@@ -13,7 +13,7 @@ public class Lexer {
     private List<String> otrasPalabrasClave = Arrays.asList("int", "string", "new", "if", "while", 
         "for", "return", "do", "char", "else", "class", "break", "boolean", "finally", "super",
         "package", "import", "switch", "case", "continue", "default", "long", "byte", "implements", 
-        "double", "interface", "extends", "this", "print"
+        "double", "interface", "extends", "this"
     );
 
     public Lexer(String input) {
@@ -75,6 +75,12 @@ public class Lexer {
                 continue;
             }
 
+            if (input.startsWith("System.out.println", pos)) {
+                tokens.add(new Token(TokenType.PRINT, "System.out.println", lineaActual));
+                pos += "System.out.println".length();
+                continue;
+            }
+
             if (Character.isLetter(current) || current == '_') {
                 tokens.add(leerIdentificadorPalabrasReservadas());
                 continue;
@@ -119,6 +125,14 @@ public class Lexer {
                         tokens.add(new Token(TokenType.DOS_PUNTOS, String.valueOf(current), lineaActual));
                         pos++;
                     }
+                    break;
+                case '.':
+                    tokens.add(new Token(TokenType.PUNTO, String.valueOf(current), lineaActual));
+                    pos++;
+                    break;
+                case ',':
+                    tokens.add(new Token(TokenType.COMA, String.valueOf(current), lineaActual));
+                    pos++;
                     break;
                 case '=':
                     if (obtenerCaracterSiguiente() == '=') {
@@ -258,6 +272,7 @@ public class Lexer {
                     break;
             }
         }
+        
         return tokens;
     }
 

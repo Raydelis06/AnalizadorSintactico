@@ -32,7 +32,9 @@ public enum TokenType {
     ARROBA("ARROBA"),
     INTERROGACION("INTERROGACION"),
     ERROR("ERROR_LEXICO"),
-    EOF("FIN_DEL_ARCHIVO");
+    EOF("FIN_DEL_ARCHIVO"), 
+    PRINT("PRINT"),
+    IMPORT("IMPORT_LIBRERIA");
 
     private final String Descripcion;
 
